@@ -20,19 +20,35 @@
     </div>
     <div>
       <CardList
-        :card="sortedCard"/>
+        :card="sortedCard"
+        v-if="!isLoading"/>
+        <div
+          v-else
+          >Идет загрузка...
+        </div>
+    </div>
+    <div class="app__pages">
+      <div class="page"
+      v-for="pageNumber in totalPages"
+      :key="pageNumber"
+      :class="{
+        'current-page': page === pageNumber
+      }"
+      @click="changePage(pageNumber)"
+      >{{ pageNumber }}</div>
     </div>
   </div>
 </template>
 
 <script>
 
-import data from '@/data/data'
+
 import CardList from './components/CardList.vue';
 import Header from './components/Header.vue';
 import SelectCard from './components/SelectCard.vue';
 import MyInput from './components/MyInput.vue';
 import SelectCardInput from './components/SelectCardInput.vue';
+import axios from 'axios';
 
 
 export default {
@@ -53,25 +69,41 @@ export default {
               {value: 'more', name: 'Больше'},
               {value: 'less', name: 'Меньше'}
             ],
-            currentPage: 1,
+            isLoading: false,
+            page: 1,
+            limit: 10,
+            totalPages: 0
         };
     },
     methods: {
-      createData(){
-         data.card.forEach(item => {
-          this.card.push(item)
-        })
+      changePage(pageNumber) {
+        this.page = pageNumber
+        this.fetchCard()
       },
-      onPageChange(page) {
-        console.log(page)
-        this.currentPage = page;
+      async fetchCard() {
+        try {
+          this.isLoading = true
+          const response = await axios.get('http://localhost:3000/card', {
+            params: {
+              _page: this.page,
+              _limit: this.limit
+            }
+          })
+          this.totalPages = Math.ceil(response.headers['x-total-count'] / this.limit)
+          this.card = response.data
+        }
+        catch(e) {
+          alert('Error message')
+        }
+        finally {
+          this.isLoading = false
+        }
       }
-      
     },
     mounted() {
-      this.createData()
-      
+     this.fetchCard()
     },
+     
     computed: {
       sortedCard() {
         if(this.selectCard === '' || this.selectCardInput === '') {
@@ -114,5 +146,30 @@ export default {
 .app__header {
   display: flex;
   flex-direction: column;
+}
+.app__pages {
+  text-align: center;
+  margin: 10px auto;
+  display: flex;
+}
+.page {
+  cursor: pointer;
+  margin: 0 3px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  font-size: 16px;
+  padding: 3px;
+  border-radius: 50%;
+  background-color: teal;
+  color: white;
+  font-weight: 600;
+}
+.current-page {
+  color: teal;
+  background-color: inherit;
+  border: 1px solid teal;
 }
 </style>
